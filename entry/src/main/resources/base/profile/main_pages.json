@@ -1,0 +1,11 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/detail",
+    "pages/message",
+    "pages/Pay",
+    "pages/appointment01",
+    "pages/appointment02",
+    "pages/appointment03"
+  ]
+}
