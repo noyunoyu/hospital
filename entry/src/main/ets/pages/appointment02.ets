@@ -1,19 +1,35 @@
 import router from '@ohos.router';
+import { HttpUtil, HttpResponseData, AppointmentData } from '../utils/HttpUtil2';
 
 @Entry
 @Component
 struct AppointmentDetailPage {
-  @State doctorName: string = '赵马'
-  @State doctorTitle: string = '主任医师'
-  @State hospital: string = '北京市第一人民医院-东院区'
-  @State address: string = '北京市大兴区**路990号'
-  @State department: string = '消化内科-门诊3楼东区501'
-  @State clinicTime: string = '2020年12月30日 周一 上午'
-  @State waitTime: string = '9:30'
-  @State fee: string = '¥60'
-  @State bookTime: string = '2020年12月12号'
-  @State patientName: string = '牛韦'
-  @State idCard: string = '610*********0989'
+  @State appointment: AppointmentData = {
+    doctorName: '',
+    doctorTitle: '',
+    hospital: '',
+    address: '',
+    department: '',
+    clinicTime: '',
+    waitTime: '',
+    fee: '',
+    appointmentTime: '',
+    patientName: '',
+    idCard: '',
+    status: ''
+  };
+  // 页面加载时请求后端
+  async aboutToAppear() {
+    try {
+      let res = await HttpUtil.get("/api/appointment/1");
+      console.log("后端返回数据:", JSON.stringify(res));
+      if (res.code === 200) {
+        this.appointment = res.data;
+      }
+    } catch (e) {
+      console.error("请求失败", e);
+    }
+  }
 
   build() {
     Scroll() {
@@ -23,7 +39,6 @@ struct AppointmentDetailPage {
           Image($r('app.media.u482'))
             .width(14)
             .height(24)
-            .margin({right:60})
             .onClick(() => {
               router.back();
             })
@@ -34,16 +49,6 @@ struct AppointmentDetailPage {
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
 
-          Row() {
-            Image($r('app.media.youshangjiao'))
-              .width(96)
-              .height(35)
-              .margin({
-                left:15 ,
-                bottom:5
-              })
-
-          }
         }
         .height(56)
         .padding({ left: 16, right: 16 })
@@ -79,12 +84,12 @@ struct AppointmentDetailPage {
               .margin({ right: 12 })
 
             Column() {
-              Text(this.doctorName)
+              Text(this.appointment.doctorName)
                 .fontSize(16)
                 .fontWeight(FontWeight.Medium)
                 .fontColor('#333333')
 
-              Text(this.doctorTitle)
+              Text(this.appointment.doctorTitle)
                 .fontSize(12)
                 .fontColor('#999999')
                 .margin({
@@ -99,7 +104,18 @@ struct AppointmentDetailPage {
           Divider().strokeWidth(1).color('#EEEEEE').margin({ bottom: 16 })
 
           // 就诊医院
-          this.buildInfoRow('就诊医院', this.hospital)
+          Row(){
+            Text('就诊医院')
+              .fontSize(14)
+              .fontColor('#999999')
+              .width(80)
+            Text(this.appointment.hospital)
+              .fontSize(14)
+              .fontColor('#333333')
+              .layoutWeight(1)
+
+          }.width('100%')
+          .padding({ top:12, bottom:12 })
 
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 })
 
@@ -110,7 +126,7 @@ struct AppointmentDetailPage {
               .fontColor('#999999')
               .width(80)
 
-            Text(this.address)
+            Text(this.appointment.address)
               .fontSize(14)
               .fontColor('#333333')
               .layoutWeight(1)
@@ -126,17 +142,48 @@ struct AppointmentDetailPage {
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 })
 
           // 就诊科室
-          this.buildInfoRow('就诊科室', this.department)
+          Row() {
+            Text('就诊科室')
+              .fontSize(14)
+              .fontColor('#999999')
+              .width(80)
+            Text(this.appointment.department)
+              .fontSize(14)
+              .fontColor('#333333')
+              .layoutWeight(1)
+          }
+          .width('100%')
+          .padding({ top:12, bottom:12 })
 
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 })
 
           // 门诊时间
-          this.buildInfoRow('门诊时间', this.clinicTime)
+          Row() {
+            Text('门诊时间')
+              .fontSize(14)
+              .fontColor('#999999')
+              .width(80)
+            Text(this.appointment.clinicTime)
+              .fontSize(14)
+              .fontColor('#333333')
+              .layoutWeight(1)
+          }.width('100%')
+          .padding({ top:12, bottom:12 })
 
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 })
 
           // 候诊时间
-          this.buildInfoRow('候诊时间', this.waitTime)
+          Row() {
+            Text('候诊时间')
+              .fontSize(14)
+              .fontColor('#999999')
+              .width(80)
+            Text(this.appointment.waitTime)
+              .fontSize(14)
+              .fontColor('#333333')
+              .layoutWeight(1)
+          }.width('100%')
+          .padding({ top:12, bottom:12 })
 
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 })
 
@@ -147,7 +194,7 @@ struct AppointmentDetailPage {
               .fontColor('#999999')
               .width(80)
 
-            Text(this.fee)
+            Text(this.appointment.fee)
               .fontSize(14)
               .fontColor('#FF4D4F')
               .layoutWeight(1)
@@ -162,7 +209,17 @@ struct AppointmentDetailPage {
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 })
 
           // 预约时间
-          this.buildInfoRow('预约时间', this.bookTime)
+          Row() {
+            Text('预约时间')
+              .fontSize(14)
+              .fontColor('#999999')
+              .width(80)
+            Text(this.appointment.appointmentTime)
+              .fontSize(14)
+              .fontColor('#333333')
+              .layoutWeight(1)
+          }.width('100%')
+          .padding({ top:12, bottom:12 })
         }
         .width('94%')
         .padding(16)
@@ -173,11 +230,31 @@ struct AppointmentDetailPage {
 
         // === 就诊人信息卡片 ===
         Column() {
-          this.buildInfoRow('就 诊 人', this.patientName)
+          Row() {
+            Text('就诊人')
+              .fontSize(14)
+              .fontColor('#999999')
+              .width(80)
+            Text(this.appointment.patientName)
+              .fontSize(14)
+              .fontColor('#333333')
+              .layoutWeight(1)
+          }.width('100%')
+          .padding({ top:12, bottom:12 })
 
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 })
 
-          this.buildInfoRow('身份证号', this.idCard)
+          Row() {
+            Text('身份证号')
+              .fontSize(14)
+              .fontColor('#999999')
+              .width(80)
+            Text(this.appointment.idCard)
+              .fontSize(14)
+              .fontColor('#333333')
+              .layoutWeight(1)
+          }.width('100%')
+          .padding({ top:12, bottom:12 })
         }
         .width('94%')
         .padding(16)

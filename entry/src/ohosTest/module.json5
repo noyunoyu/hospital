@@ -6,6 +6,17 @@
       "phone"
     ],
     "deliveryWithInstall": true,
-    "installationFree": false
+    "installationFree": false,
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET",
+        "usedScene": {
+          "abilities": [
+            "*" // 替换为你的Ability名称（如MainAbility），或直接写["*"]表示所有
+          ],
+          "when": "always"
+        }
+      }
+    ]
   }
 }
