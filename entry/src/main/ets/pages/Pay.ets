@@ -1,54 +1,105 @@
 import router from '@ohos.router';
-import promptAction from '@ohos.promptAction';
-import { EditableLeftIconType } from '@kit.ArkUI';
+import { HttpUtil } from '../utils/HttpUtil2';
 
-// 1. 显式定义接口
+// 页面使用的订单项
 interface PayItem {
+  orderNo: string;
   title: string;
   department: string;
-  name: string;
+  name: string;           // 医生姓名（原 UI 中使用的字段名）
+  patientName: string;
   time: string;
   money: string;
   url: string;
 }
 
+// 就诊人
 interface PatientItem {
+  id: number;
   name: string;
   tag: string;
-  id: string;
+  displayId: string;      // 脱敏身份证
+  realId: string;
   relation: string;
+  medicalCardNo: string;  // 就诊卡号
 }
 
 @Entry
 @Component
 struct Pay {
-  // 控制弹窗显示
   @State isShowDialog: boolean = false;
-
-  // 【新增】当前选中的就诊人状态变量
-  // 初始值设为列表中的第一个，确保界面初始化时有数据
+  @State selectedTimeRange: string = '1year';
+  @State selectedTimeText: string = '选择时间';
   @State currentPatient: PatientItem = {
-    name: '蒋峰',
-    tag: '本人',
-    id: '622*********0909',
-    relation: ''
+    id: 0,
+    name: '',
+    tag: '',
+    displayId: '',
+    realId: '',
+    relation: '',
+    medicalCardNo: ''
   };
+  @State patients: PatientItem[] = [];
+  @State payment: PayItem[] = [];
 
-  // 初始化数据
-  private patients: PatientItem[] = [
-    { name: '蒋峰', tag: '本人', id: '622*********0909', relation: '' },
-    { name: '范东升', tag: '父母', id: '622*********9090', relation: '父亲' }
-  ];
 
-  @State payment: PayItem[] = [
-    { title: "西药费", department: "神经内科", name: "刘美", time: "2020-06-10 11:05", money: "60.00", url: "pages/detail" },
-    { title: "西药费", department: "神经内科", name: "刘美", time: "2020-06-10 11:05", money: "60.00", url: "pages/detail" },
-    { title: "西药费", department: "神经内科", name: "刘美", time: "2020-06-10 11:05", money: "60.00", url: "pages/detail" }
-  ];
+
+  aboutToAppear() {
+    this.loadPatients();
+  }
+
+  async loadPatients() {
+    let res = await HttpUtil.getPatients();
+    if (res.code === 200 && res.data.length > 0) {
+      const patientList: PatientItem[] = res.data.map(p => ({
+        id: p.id,
+        name: p.name,
+        tag: p.relation,
+        displayId: HttpUtil.maskIdNumber(p.idNumber),
+        realId: p.idNumber,
+        relation: p.relation,
+        medicalCardNo: p.cardNumber || ''
+      } as PatientItem));
+      this.patients = patientList;
+
+      // 设置默认就诊人（优先 isDefault=1 的）
+      const defaultPatient = patientList.find(p => p.id === res.data.find(d => d.isDefault === 1)?.id);
+      this.currentPatient = defaultPatient || patientList[0];
+
+      this.loadPayments();
+    } else {
+      console.error('加载就诊人列表失败', res.msg);
+    }
+  }
+
+  async loadPayments() {
+    console.log("当前就诊人信息:", JSON.stringify(this.currentPatient));
+    console.log("当前时间范围:", this.selectedTimeRange);
+    if (!this.currentPatient.medicalCardNo) return;
+    console.log("加载缴费记录，患者卡号:", this.currentPatient.medicalCardNo);
+    let res = await HttpUtil.getPaymentList(this.currentPatient.medicalCardNo, this.selectedTimeRange);
+    if (res.code === 200) {
+      this.payment = res.data.map(order => ({
+        orderNo: order.orderNo,
+        title: order.feeType,
+        department: order.department,
+        name: order.doctorName,           // 保持原 UI 字段名
+        patientName: order.patientName,
+        time: order.orderTime,
+        money: order.orderTotal,
+        url: "pages/detail"
+      } as PayItem));
+      console.log("获取到的支付记录:", this.payment); // 添加调试信息
+      console.log("获取到的支付记录数量:", this.payment.length);
+      console.log("接口返回完整数据:", JSON.stringify(res));
+    } else {
+      this.payment = [];
+      console.error('加载缴费记录失败：' + res.msg);
+    }
+  }
 
   build() {
     Stack() {
-      // --- 主页面内容 ---
       Column() {
         // 导航栏
         Row() {
@@ -70,7 +121,6 @@ struct Pay {
             .margin({ left: 12 });
 
           Blank();
-
         }
         .width('100%')
         .height(48)
@@ -80,22 +130,12 @@ struct Pay {
         // 个人名片
         Column() {
           Row() {
-            // 【修改】绑定 currentPatient.name
             Text(this.currentPatient.name)
-              .margin({
-                top:30
-              })
+              .margin({ top: 30 });
 
-
-            // 【修改】绑定 currentPatient.tag
             Text(this.currentPatient.tag)
               .fontSize(12)
-              .margin({
-                top:28,
-                left:10,
-                right:120
-
-              })
+              .margin({ top: 28, left: 10, right: 120 })
               .backgroundColor('#E2EDFE')
               .fontColor('#4C98FF')
               .borderWidth(4)
@@ -105,18 +145,15 @@ struct Pay {
             Image($r('app.media.qiehuan'))
               .width(25)
               .height(25)
-              .margin({
-                top: 30,
-                left:25
-              })
+              .margin({ top: 30, left: 25 })
               .onClick(() => {
                 this.isShowDialog = true;
               });
           }
           Blank();
           Row() {
-            // 【修改】绑定 currentPatient.id
-            Text(this.currentPatient.id)
+            // 显示脱敏身份证（原 UI 中显示 id）
+            Text(this.currentPatient.displayId)
               .fontColor("#D3D5D8")
               .position({ x: 16, y: 65 });
 
@@ -136,28 +173,54 @@ struct Pay {
 
         Blank(18);
 
-        // 选择时间
+        // 时间筛选器
+        // === 时间筛选器 ===
         Row() {
-          Text("   近一年")
-            .height(25)
-            .width(65)
-            .backgroundColor("#006EFF")
-            .fontColor("#86BAFF")
-            .borderRadius(13)
+          Button('近一年')
+            .backgroundColor(this.selectedTimeRange === '1year' ? '#007DFF' : '#E6F7FF')
+            .fontColor(this.selectedTimeRange === '1year' ? '#FFFFFF' : '#007DFF')
             .fontSize(14)
-            .position({ x: -85 });
+            .padding({ left: 20, right: 20, top: 4, bottom: 8 })
+            .borderRadius(13)
+            .margin({ right: 12 })
+            .height(26)
+            .onClick(() => {
+              this.selectedTimeRange = '1year';
+              this.selectedTimeText = '选择时间';
+              this.loadPayments();
+            })
 
-          // 注意：如果这里编译报错，请参照之前的建议简化 Select 写法
+          // === 修改点：兼容旧版 Select 写法 ===
+          // 旧版 Select 直接传字符串数组，不支持 label 属性
           Select([
-            { value: "时间1" },
-            { value: "时间2" }
-          ]).value("选择时间")
-            .backgroundColor("#E4F0FF")
-            .fontColor("#87BBFF")
+            { value: "近三个月" },
+            { value: "近六个月" },
+            { value: "全部时间" }
+          ])
+            .value(this.selectedTimeText)
+            .backgroundColor('#E6F7FF')
+            .fontColor('#007DFF')
+            .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+            .borderRadius(16)
             .controlSize(ControlSize.SMALL)
-            .margin({ right: 40 })
+            .onSelect((index: number) => {
+              if (index === 0) {
+                this.selectedTimeRange = '3months';
+                this.selectedTimeText = '近三个月';
+              } else if (index === 1) {
+                this.selectedTimeRange = '6months';
+                this.selectedTimeText = '近六个月';
+              } else if (index === 2) {
+                this.selectedTimeRange = 'all';
+                this.selectedTimeText = '全部时间';
+              }
+              this.loadPayments();
+            })
+
 
         }
+        .width('94%')
+        .padding({ left: 16, top: 0, bottom: 16 })
 
         Blank(20);
 
@@ -168,7 +231,15 @@ struct Pay {
               this.buildPaymentCard(item);
             }
             .padding({ bottom: 12, left: 15 })
-          });
+            .onClick(() => {
+              router.pushUrl({
+                url: "pages/detail",
+                params: {
+                  orderNo: item.orderNo
+                }   // 直接传递
+              });
+            });
+          }, (item: PayItem) => item.orderNo);
         }
         .width("100%")
         .height("100%");
@@ -177,13 +248,12 @@ struct Pay {
       .height('100%')
       .backgroundColor('#FDFEFF');
 
-      // --- 弹窗遮罩层 (条件渲染) ---
+      // 弹窗遮罩层
       if (this.isShowDialog) {
         Column() {
           Blank();
 
           Column() {
-            // 标题栏
             Row() {
               Text('选择就诊人')
                 .fontSize(18)
@@ -208,7 +278,6 @@ struct Pay {
               .height(1)
               .backgroundColor('#EEEEEE');
 
-            // 就诊人列表
             List() {
               ForEach(this.patients, (patient: PatientItem) => {
                 ListItem() {
@@ -229,7 +298,7 @@ struct Pay {
                           .margin({ left: 8 });
                       }
 
-                      Text(patient.id)
+                      Text(patient.displayId)   // 显示脱敏身份证
                         .fontSize(14)
                         .fontColor('#999999')
                         .margin({ top: 4 });
@@ -248,16 +317,13 @@ struct Pay {
                   .justifyContent(FlexAlign.SpaceBetween)
                   .alignItems(VerticalAlign.Center)
                   .onClick(() => {
-                    // 【核心修改】更新状态变量，触发界面刷新
                     this.currentPatient = patient;
-                    console.info(`选择了就诊人: ${patient.name}`);
-
-                    // 关闭弹窗
                     this.isShowDialog = false;
+                    this.loadPayments();
                   });
                 }
                 .backgroundColor('#FFFFFF');
-              }, (patient: PatientItem) => patient.id);
+              }, (patient: PatientItem) => patient.id.toString());
             }
             .width('100%')
             .backgroundColor('#FFFFFF');
@@ -283,18 +349,19 @@ struct Pay {
           .fontSize(18)
           .fontColor("#838383")
           .fontWeight(500)
-          .margin({ right: 13, bottom: 10 });
+          .margin({ right: 20, bottom: 10 });
 
         Text(item.department + ' ' + item.name)
           .fontColor("#D3D3D3")
           .fontSize(12)
-          .margin({ left: 5 });
+          .margin({right:15})
+
 
         Text(item.time)
           .fontColor("#D3D3D3")
-          .fontSize(12)
+          .fontSize(13)
           .letterSpacing(-1)
-          .margin({ left: 15, top: 4 });
+          .margin({ left: 20, top: 9 });
       }
 
       Column() {
@@ -303,14 +370,11 @@ struct Pay {
           .fontSize(20)
           .fontWeight(600);
       }
-      .margin({ left: 130 });
+      .margin({ left: 70 });
     }
     .borderWidth(2)
     .height(110)
     .width(330)
     .borderColor("#E3E3E3")
-    .onClick(() => {
-      router.pushUrl({ url: item.url })
-    })
   }
 }

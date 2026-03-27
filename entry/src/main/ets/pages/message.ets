@@ -193,7 +193,6 @@ struct AppointmentRecordPage {
               this.loadAppointments();
             })
 
-
           // === 修改点：兼容旧版 Select 写法 ===
           // 旧版 Select 直接传字符串数组，不支持 label 属性
           Select([

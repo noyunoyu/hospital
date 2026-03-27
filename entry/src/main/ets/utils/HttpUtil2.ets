@@ -1,6 +1,6 @@
 import http from '@ohos.net.http';
 
-const BASE_URL = "http://222.24.75.128:5000";
+const BASE_URL = "http://192.168.0.7:5000";
 
 // 定义就诊人数据结构
 export interface PatientData {
@@ -9,6 +9,7 @@ export interface PatientData {
   relation: string;
   idNumber: string;   // 完整身份证号
   isDefault: number;  // 1-默认，0-非默认
+  cardNumber: string;
 }
 
 export interface PatientListResponse {
@@ -17,6 +18,7 @@ export interface PatientListResponse {
   data: PatientData[];
 }
 
+// 预约记录详情
 export interface AppointmentData {
   doctorName: string;
   doctorTitle: string;
@@ -55,6 +57,56 @@ export interface AppointmentListResponse {
   data: AppointmentListItem[];
 }
 
+// 缴费相关接口定义
+// 药品明细项接口
+export interface PaymentItem {
+  drugName: string;
+  unitPrice: string;
+  quantity: number;
+  drugTotal: string;
+}
+
+export interface PaymentOrder {
+  orderNo: string;
+  feeType: string;
+  department: string;
+  doctorName: string;
+  patientName: string;
+  medicalCardNo: string;
+  paymentMethod: string;
+  cardBalance: string;
+  orderTotal: string;
+  orderTime: string;
+  drugCount: number;
+}
+
+export interface PaymentListResponse {
+  code: number;
+  msg: string;
+  data: PaymentOrder[];
+}
+
+export interface PaymentDetail {
+  orderNo: string;
+  feeType: string;
+  department: string;
+  doctorName: string;
+  patientName: string;
+  medicalCardNo: string;
+  paymentMethod: string;
+  cardBalance: string;
+  orderTotal: string;
+  orderTime: string;
+  items: PaymentItem[];  // 修复：使用接口类型而不是对象字面量
+}
+
+export interface PaymentDetailResponse {
+  code: number;
+  msg: string;
+  data: PaymentDetail;
+}
+
+
 export class HttpUtil {
   static async get(url: string): Promise<HttpResponseData> {
     let httpRequest = http.createHttp();
@@ -77,7 +129,7 @@ export class HttpUtil {
     }
   }
 
-  // 新增：获取预约记录列表
+  // 获取预约记录列表
   static async getAppointmentList(patientIdCard: string, timeRange: string): Promise<AppointmentListResponse> {
     let httpRequest = http.createHttp();
     try {
@@ -124,6 +176,76 @@ export class HttpUtil {
     } catch (err) {
       console.error("获取就诊人列表异常", JSON.stringify(err));
       return { code: 500, msg: "请求异常", data: [] };
+    } finally {
+      httpRequest.destroy();
+    }
+  }
+
+  // 获取缴费订单列表
+  static async getPaymentList(medicalCardNo: string, timeRange: string): Promise<PaymentListResponse> {
+    let httpRequest = http.createHttp();
+    try {
+      let url = `${BASE_URL}/api/payments?medical_card_no=${encodeURIComponent(medicalCardNo)}&time_range=${encodeURIComponent(timeRange)}`;
+      let result = await httpRequest.request(url, {
+        method: http.RequestMethod.GET,
+        connectTimeout: 10000
+      });
+      if (result.responseCode === 200 && result.result) {
+        return JSON.parse(result.result.toString()) as PaymentListResponse;
+      } else {
+        return { code: 500, msg: '获取缴费记录失败', data: [] };
+      }
+    } catch (err) {
+      console.error("获取缴费记录失败", JSON.stringify(err));
+      return { code: 500, msg: '请求异常', data: [] };
+    } finally {
+      httpRequest.destroy();
+    }
+  }
+
+  // 获取缴费订单详情
+  static async getPaymentDetail(orderNo: string): Promise<PaymentDetailResponse> {
+    let httpRequest = http.createHttp();
+    try {
+      let result = await httpRequest.request(BASE_URL + `/api/payment/${orderNo}`, {
+        method: http.RequestMethod.GET,
+        connectTimeout: 10000
+      });
+      if (result.responseCode === 200 && result.result) {
+        return JSON.parse(result.result.toString()) as PaymentDetailResponse;
+      } else {
+        // 修复：创建默认的空对象而不是使用 null
+        const emptyDetail: PaymentDetail = {
+          orderNo: '',
+          feeType: '',
+          department: '',
+          doctorName: '',
+          patientName: '',
+          medicalCardNo: '',
+          paymentMethod: '',
+          cardBalance: '',
+          orderTotal: '',
+          orderTime: '',
+          items: []
+        };
+        return { code: 500, msg: '获取订单详情失败', data: emptyDetail };
+      }
+    } catch (err) {
+      console.error("获取订单详情失败", JSON.stringify(err));
+      const emptyDetail: PaymentDetail = {
+        orderNo: '',
+        feeType: '',
+        department: '',
+        doctorName: '',
+        patientName: '',
+        medicalCardNo: '',
+        paymentMethod: '',
+        cardBalance: '',
+        orderTotal: '',
+        orderTime: '',
+        items: []
+      };
+      return { code: 500, msg: '请求异常', data: emptyDetail };
     } finally {
       httpRequest.destroy();
     }
