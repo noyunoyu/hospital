@@ -1,15 +1,19 @@
 import router from '@ohos.router';
+import { HttpUtil, AppointmentListItem } from '../utils/HttpUtil2';
 
 // 1. 定义就诊人数据接口
 interface PatientItem {
+  id: number;
   name: string;
   tag: string;
-  id: string;
+  displayId: string;
+  realId: string;
   relation: string;
 }
 
 // 2. 定义预约记录数据接口
 interface AppointmentItem {
+  id: number;
   title: string;
   status: string;
   department: string;
@@ -22,46 +26,76 @@ interface AppointmentItem {
 struct AppointmentRecordPage {
   // 控制弹窗显示的状态
   @State isShowDialog: boolean = false;
+  @State selectedTimeRange: string = '1year';
+  @State selectedTimeText: string = '选择时间';
+
+
+  // 就诊人列表数据
+  @State patients: PatientItem[] = [];
 
   // 当前选中的就诊人
   @State currentPatient: PatientItem = {
-    name: '蒋峰',
-    tag: '本人',
-    id: '622*********0909',
+    id: 0,
+    name: '',
+    tag: '',
+    displayId: '',
+    realId: '',
     relation: ''
   };
 
-  // 就诊人列表数据
-  private patients: PatientItem[] = [
-    { name: '蒋峰', tag: '本人', id: '622*********0909', relation: '' },
-    { name: '范东升', tag: '父母', id: '622*********9090', relation: '父亲' }
-  ];
 
-  @State appointments: AppointmentItem[] = [
-    {
-      title: '神经内科门诊 刘美',
-      status: '预约成功',
-      department: '消化内科 - 门诊 3 楼东区 501',
-      time: '2020 年 10 月 5 日 10:50',
-      patient: '王敏'
-    },
-    {
-      title: '神经内科门诊 刘美',
-      status: '已完成',
-      department: '消化内科 - 门诊 3 楼东区 501',
-      time: '2020 年 10 月 5 日 10:50',
-      patient: '王敏'
-    },
-    {
-      title: '神经内科门诊 刘美',
-      status: '已取消',
-      department: '消化内科 - 门诊 3 楼东区 501',
-      time: '2020 年 10 月 5 日 10:50',
-      patient: '王敏'
+  @State appointments: AppointmentItem[] = [];
+
+  aboutToAppear() {
+    this.loadPatients();
+  }
+
+  async loadPatients() {
+    let res = await HttpUtil.getPatients();
+    if (res.code === 200 && res.data.length > 0) {
+      const patientList: PatientItem[] = res.data.map(p => ({
+        id: p.id,
+        name: p.name,
+        tag: p.relation,
+        displayId: HttpUtil.maskIdNumber(p.idNumber),
+        realId: p.idNumber,
+        relation: p.relation
+      }as PatientItem));
+      this.patients = patientList;
+
+      // 设置默认就诊人（isDefault=1）
+      const defaultPatient = patientList.find(p => p.id === res.data.find(d => d.isDefault === 1)?.id);
+      this.currentPatient = defaultPatient || patientList[0];
+
+      this.loadAppointments();
+    } else {
+      console.error('加载就诊人列表失败', res.msg);
     }
-  ]
+  }
+
+
+
+  async loadAppointments() {
+    let res = await HttpUtil.getAppointmentList(this.currentPatient.realId, this.selectedTimeRange);
+    if (res.code === 200) {
+      this.appointments = res.data.map((item: AppointmentListItem) => {
+        return {
+          id: item.id,
+          title: item.title,
+          status: item.status,
+          department: item.department,
+          time: item.time,
+          patient: item.patient
+        }as AppointmentItem;
+      });
+    } else {
+      this.appointments = [];
+      console.error('加载预约记录失败：' + res.msg);
+    }
+  }
 
   build() {
+
     Stack() {
       Column() {
         // === 顶部导航栏 ===
@@ -113,7 +147,7 @@ struct AppointmentRecordPage {
                   .margin({ left: 8 })
               }
 
-              Text(this.currentPatient.id)
+              Text(this.currentPatient.displayId)
                 .fontSize(12)
                 .fontColor('#999999')
                 .margin({ top: 8 })
@@ -146,26 +180,47 @@ struct AppointmentRecordPage {
         // === 时间筛选器 ===
         Row() {
           Button('近一年')
-            .backgroundColor('#007DFF')
-            .fontColor('#FFFFFF')
+            .backgroundColor(this.selectedTimeRange === '1year' ? '#007DFF' : '#E6F7FF')
+            .fontColor(this.selectedTimeRange === '1year' ? '#FFFFFF' : '#007DFF')
             .fontSize(14)
             .padding({ left: 20, right: 20, top: 4, bottom: 8 })
             .borderRadius(13)
             .margin({ right: 12 })
             .height(26)
+            .onClick(() => {
+              this.selectedTimeRange = '1year';
+              this.selectedTimeText = '选择时间';
+              this.loadAppointments();
+            })
+
 
           // === 修改点：兼容旧版 Select 写法 ===
           // 旧版 Select 直接传字符串数组，不支持 label 属性
           Select([
-            { value: "时间1" },
-            { value: "时间2" }
+            { value: "近三个月" },
+            { value: "近六个月" },
+            { value: "全部时间" }
           ])
-            .value('选择时间')
+            .value(this.selectedTimeText)
             .backgroundColor('#E6F7FF')
             .fontColor('#007DFF')
             .padding({ left: 20, right: 20, top: 8, bottom: 8 })
             .borderRadius(16)
             .controlSize(ControlSize.SMALL)
+            .onSelect((index: number) => {
+              if (index === 0) {
+                this.selectedTimeRange = '3months';
+                this.selectedTimeText = '近三个月';
+              } else if (index === 1) {
+                this.selectedTimeRange = '6months';
+                this.selectedTimeText = '近六个月';
+              } else if (index === 2) {
+                this.selectedTimeRange = 'all';
+                this.selectedTimeText = '全部时间';
+              }
+              this.loadAppointments();
+            })
+
 
         }
         .width('94%')
@@ -178,6 +233,9 @@ struct AppointmentRecordPage {
               this.buildAppointmentCard(item)
             }
             .padding({ bottom: 12 })
+            .onClick(() => {
+              this.goToDetailPage(item);
+            })
           })
         }
         .width('94%')
@@ -187,7 +245,7 @@ struct AppointmentRecordPage {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#F5F5F5')
+      .backgroundColor('#FDFEFF')
 
       // === 弹窗遮罩层 ===
       if (this.isShowDialog) {
@@ -240,7 +298,7 @@ struct AppointmentRecordPage {
                           .margin({ left: 8 })
                       }
 
-                      Text(patient.id)
+                      Text(patient.displayId)
                         .fontSize(14)
                         .fontColor('#999999')
                         .margin({ top: 4 })
@@ -261,10 +319,11 @@ struct AppointmentRecordPage {
                   .onClick(() => {
                     this.currentPatient = patient;
                     this.isShowDialog = false;
+                    this.loadAppointments();
                   })
                 }
-                .backgroundColor('#FFFFFF')
-              }, (patient: PatientItem) => patient.id)
+                .backgroundColor('#FDFEFF')
+              }, (patient: PatientItem) => patient.id.toString())
             }
             .width('100%')
             .backgroundColor('#FFFFFF')
@@ -314,13 +373,17 @@ struct AppointmentRecordPage {
         .width('100%')
         .padding({ bottom: 8 })
 
+      Blank(5)
+
       Text('就诊时间 ' + item.time)
         .fontSize(12)
         .fontColor('#999999')
         .width('100%')
         .padding({ bottom: 8 })
 
-      Text('就诊人 ' + item.patient)
+      Blank(5)
+
+      Text('就诊人     ' + item.patient)
         .fontSize(12)
         .fontColor('#999999')
         .width('100%')
@@ -343,4 +406,36 @@ struct AppointmentRecordPage {
         return '#333333';
     }
   }
+
+  goToDetailPage(item: AppointmentItem) {
+    let url = '';
+
+    switch (item.status) {
+      case '预约成功':
+        url = 'pages/appointment01';
+        break;
+      case '已完成':
+        url = 'pages/appointment02';
+        break;
+      case '已取消':
+        url = 'pages/appointment03';
+        break;
+      default:
+        url = 'pages/appointment01';
+        break;
+    }
+
+
+    router.pushUrl({
+      url: url,
+      params: {
+        appointmentId: item.id
+      }
+    });
+  }
+
+}
+
+function getDepartmentName(fullName: undefined, string: undefined) {
+  throw new Error('Function not implemented.');
 }

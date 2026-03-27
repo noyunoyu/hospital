@@ -21,10 +21,20 @@ struct AppointmentDetailPage {
   // 页面加载时请求后端
   async aboutToAppear() {
     try {
-      let res = await HttpUtil.get("/api/appointment/1");
+      // 获取路由传递的参数
+      const params = router.getParams() as Record<string, Object>;
+      const appointmentId = params?.['appointmentId'] as number;
+      if (!appointmentId) {
+        console.error('未获取到预约ID');
+        return;
+      }
+      let res = await HttpUtil.get(`/api/appointment/${appointmentId}`);
       console.log("后端返回数据:", JSON.stringify(res));
+
       if (res.code === 200) {
         this.appointment = res.data;
+      } else {
+        console.error('获取详情失败', res.msg);
       }
     } catch (e) {
       console.error("请求失败", e);

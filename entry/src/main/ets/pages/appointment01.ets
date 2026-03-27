@@ -19,13 +19,26 @@ struct AppointmentDetailPage {
     status: ''
   };
 
+  @State currentId : number = 0 ; //保存当前预约ID
+
   // 页面加载时请求后端
   async aboutToAppear() {
     try {
-      let res = await HttpUtil.get("/api/appointment/1");
+      // 获取路由传递的参数
+      const params = router.getParams() as Record<string, Object>;
+      const appointmentId = params?.['appointmentId'] as number;
+      if (!appointmentId) {
+        console.error('未获取到预约ID');
+        return;
+      }
+      this.currentId = appointmentId;  // 保存ID
+      let res = await HttpUtil.get(`/api/appointment/${appointmentId}`);
       console.log("后端返回数据:", JSON.stringify(res));
+
       if (res.code === 200) {
         this.appointment = res.data;
+      } else {
+        console.error('获取详情失败', res.msg);
       }
     } catch (e) {
       console.error("请求失败", e);
@@ -250,7 +263,13 @@ struct AppointmentDetailPage {
           .fontWeight(FontWeight.Medium)
           .borderRadius(8)
           .onClick(() => {
-            router.pushUrl({url:"pages/appointment03"})
+            router.pushUrl({
+              url:"pages/appointment03",
+              params: {
+                appointmentId: this.currentId  // 需要从 state 中获取当前预约 ID
+              }
+            })
+
           })
           .margin({ bottom:32 })
       }
