@@ -1,12 +1,12 @@
 import router from '@ohos.router';
-import { HttpUtil } from '../utils/HttpUtil2';
+import { HttpUtil, PaymentListResponse } from '../utils/HttpUtil2';
 
 // 页面使用的订单项
 interface PayItem {
   orderNo: string;
   title: string;
   department: string;
-  name: string;           // 医生姓名（原 UI 中使用的字段名）
+  name: string; // 医生姓名（原 UI 中使用的字段名）
   patientName: string;
   time: string;
   money: string;
@@ -18,10 +18,16 @@ interface PatientItem {
   id: number;
   name: string;
   tag: string;
-  displayId: string;      // 脱敏身份证
+  displayId: string; // 脱敏身份证
   realId: string;
   relation: string;
-  medicalCardNo: string;  // 就诊卡号
+  medicalCardNo: string; // 就诊卡号
+}
+
+interface DatePickerValue {
+  year?: number;
+  month?: number;
+  day?: number;
 }
 
 
@@ -31,6 +37,11 @@ struct Pay {
   @State isShowDialog: boolean = false;
   @State selectedTimeRange: string = '1year';
   @State selectedTimeText: string = '选择时间';
+  // 日期选择器状态
+  @State showDatePicker: boolean = false;
+  @State startDate: string = '2020-01-01';
+  @State endDate: string = '2020-01-01';
+  @State pickerMode: 'start' | 'end' = 'start';
   @State currentPatient: PatientItem = {
     id: 0,
     name: '',
@@ -42,8 +53,6 @@ struct Pay {
   };
   @State patients: PatientItem[] = [];
   @State payment: PayItem[] = [];
-
-
 
   aboutToAppear() {
     this.loadPatients();
@@ -76,15 +85,28 @@ struct Pay {
   async loadPayments() {
     console.log("当前就诊人信息:", JSON.stringify(this.currentPatient));
     console.log("当前时间范围:", this.selectedTimeRange);
-    if (!this.currentPatient.medicalCardNo) return;
+    if (!this.currentPatient.medicalCardNo) {
+      return;
+    }
     console.log("加载缴费记录，患者卡号:", this.currentPatient.medicalCardNo);
-    let res = await HttpUtil.getPaymentList(this.currentPatient.medicalCardNo, this.selectedTimeRange);
+    let res: PaymentListResponse;
+    if (this.selectedTimeRange === 'custom') {
+      // 自定义日期区间
+      res = await HttpUtil.getPaymentListByDate(
+        this.currentPatient.medicalCardNo,
+        this.startDate,
+        this.endDate
+      );
+    } else {
+      // 保留近一年
+      res = await HttpUtil.getPaymentList(this.currentPatient.medicalCardNo, this.selectedTimeRange);
+    }
     if (res.code === 200) {
       this.payment = res.data.map(order => ({
         orderNo: order.orderNo,
         title: order.feeType,
         department: order.department,
-        name: order.doctorName,           // 保持原 UI 字段名
+        name: order.doctorName, // 保持原 UI 字段名
         patientName: order.patientName,
         time: order.orderTime,
         money: order.orderTotal,
@@ -97,6 +119,30 @@ struct Pay {
       this.payment = [];
       console.error('加载缴费记录失败：' + res.msg);
     }
+  }
+
+  // 🟢 日期选择格式化
+  onDateChange(value: DatePickerValue) {
+    const year = value.year ?? 2024;
+    const month = value.month ?? 0;
+    const day = value.day ?? 1;
+
+    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+    if (this.pickerMode === 'start') {
+      this.startDate = dateStr;
+    } else {
+      this.endDate = dateStr;
+    }
+  }
+
+  // 格式：2020-01-01 → 2020年01月01日
+  formatToChineseDate(dateStr: string): string {
+    const GeneratedDestructArray_1 = dateStr.split('-');
+    const year = GeneratedDestructArray_1[0];
+    const month = GeneratedDestructArray_1[1];
+    const day = GeneratedDestructArray_1[2];
+    return `${year}年${month}月${day}日`;
   }
 
   build() {
@@ -151,6 +197,7 @@ struct Pay {
                 this.isShowDialog = true;
               });
           }
+
           Blank();
           Row() {
             // 显示脱敏身份证（原 UI 中显示 id）
@@ -181,7 +228,12 @@ struct Pay {
             .backgroundColor(this.selectedTimeRange === '1year' ? '#007DFF' : '#E6F7FF')
             .fontColor(this.selectedTimeRange === '1year' ? '#FFFFFF' : '#007DFF')
             .fontSize(14)
-            .padding({ left: 20, right: 20, top: 4, bottom: 8 })
+            .padding({
+              left: 20,
+              right: 20,
+              top: 4,
+              bottom: 8
+            })
             .borderRadius(13)
             .margin({ right: 12 })
             .height(26)
@@ -191,37 +243,20 @@ struct Pay {
               this.loadPayments();
             })
 
-          // === 修改点：兼容旧版 Select 写法 ===
-          // 旧版 Select 直接传字符串数组，不支持 label 属性
-          Select([
-            { value: "近三个月" },
-            { value: "近六个月" },
-            { value: "全部时间" }
-          ])
-            .value(this.selectedTimeText)
+
+          Button(this.selectedTimeText)
             .backgroundColor('#E6F7FF')
             .fontColor('#007DFF')
-            .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+            .fontSize(14)
+            .padding({ left: 20, right: 20 })
             .borderRadius(16)
-            .controlSize(ControlSize.SMALL)
-            .onSelect((index: number) => {
-              if (index === 0) {
-                this.selectedTimeRange = '3months';
-                this.selectedTimeText = '近三个月';
-              } else if (index === 1) {
-                this.selectedTimeRange = '6months';
-                this.selectedTimeText = '近六个月';
-              } else if (index === 2) {
-                this.selectedTimeRange = 'all';
-                this.selectedTimeText = '全部时间';
-              }
-              this.loadPayments();
+            .height(26)
+            .onClick(() => {
+              this.showDatePicker = true;
             })
-
-
         }
         .width('94%')
-        .padding({ left: 16, top: 0, bottom: 16 })
+        .padding({ left: 16, bottom: 16 })
 
         Blank(20);
 
@@ -292,7 +327,12 @@ struct Pay {
 
                         Text(patient.tag)
                           .fontSize(12)
-                          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                          .padding({
+                            left: 6,
+                            right: 6,
+                            top: 2,
+                            bottom: 2
+                          })
                           .backgroundColor('#E8F3FF')
                           .borderRadius(4)
                           .fontColor('#007AFF')
@@ -339,6 +379,93 @@ struct Pay {
         .backgroundColor('#00000000')
         .justifyContent(FlexAlign.End);
       }
+      // ====================== 日期选择弹窗 ======================
+      if (this.showDatePicker) {
+        Column() {
+          Blank()
+        }
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#000000')
+        .opacity(0.4)
+        .position({ top: 0, left: 0 });
+
+        Column() {
+          Row() {
+            Text('取消')
+              .fontSize(16)
+              .fontColor('#666666')
+              .margin({ left: 16 })
+              .onClick(() => {
+                this.showDatePicker = false;
+              });
+
+            Blank();
+
+            Text('确定')
+              .fontSize(16)
+              .fontColor('#007DFF')
+              .margin({ right: 16 })
+              .onClick(() => {
+                this.selectedTimeText = `${this.startDate} 至 ${this.endDate}`;
+                this.selectedTimeRange = 'custom';
+                this.showDatePicker = false;
+                this.loadPayments();
+              });
+          }
+          .width('100%')
+          .height(44)
+          .alignItems(VerticalAlign.Center);
+
+          Row() {
+            Text(this.formatToChineseDate(this.startDate))
+              .width(135)
+              .height(35)
+              .fontSize(12)
+              .backgroundColor(this.pickerMode === 'start' ? '#006EFF' : '#E6F1FF')
+              .fontColor(this.pickerMode === 'start' ? '#F2F2F2' : '#62A6FF')
+              .borderWidth(1)
+              .borderColor('#FFFFFF')
+              .borderRadius(6)
+              .textAlign(TextAlign.Center)
+              .onClick(() => { this.pickerMode = 'start'; });
+
+            Text(' 至 ')
+              .fontSize(14)
+              .fontColor('#666666')
+              .margin({left:8 , right:8})
+
+            Text(this.formatToChineseDate(this.endDate))
+              .width(135)
+              .height(35)
+              .fontSize(14)
+              .backgroundColor(this.pickerMode === 'end' ? '#006EFF' : '#E6F1FF')
+              .fontColor(this.pickerMode === 'end' ? '#F2F2F2' : '#62A6FF')
+              .borderWidth(1)
+              .borderColor('#FFFFFF')
+              .borderRadius(6)
+              .textAlign(TextAlign.Center)
+              .onClick(() => { this.pickerMode = 'end'; });
+          }
+          .width('100%')
+          .margin({ top: 12, bottom: 12 })
+          .justifyContent(FlexAlign.Center);
+
+          DatePicker({
+            start: new Date('2020-01-01'),
+            end: new Date('2030-12-31'),
+            selected: this.pickerMode === 'start' ? new Date(this.startDate) : new Date(this.endDate)
+          })
+            .onChange((value : DatePickerValue) => this.onDateChange(value))
+            .width('100%')
+            .height(200)
+            .backgroundColor('#FFFFFF')
+        }
+        .width('100%')
+        .backgroundColor('#FFFFFF')
+        .borderRadius({ topLeft: 16, topRight: 16 })
+        .position({ bottom: 0 });
+      }
     }
   }
 
@@ -355,7 +482,7 @@ struct Pay {
         Text(item.department + ' ' + item.name)
           .fontColor("#D3D3D3")
           .fontSize(12)
-          .margin({right:15})
+          .margin({ right: 15 })
 
 
         Text(item.time)

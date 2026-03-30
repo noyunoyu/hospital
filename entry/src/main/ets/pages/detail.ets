@@ -1,5 +1,6 @@
 import router from '@ohos.router';
 import { HttpUtil, PaymentItem, PaymentDetail } from '../utils/HttpUtil2';
+import { EditableLeftIconType } from '@kit.ArkUI';
 
 // 定义路由参数类型（解决ArkTS类型报错）
 interface RouterParams {
@@ -68,12 +69,6 @@ struct PaymentDetailPage {
           .layoutWeight(1)
           .margin({ left: 110 });
 
-        Row() {
-          Image($r('app.media.youshangjiao'))
-            .width(104)
-            .height(34)
-            .margin({ right: 1 });
-        }
       }
       .height(56)
       .padding({ left: 16, right: 16 })
@@ -185,9 +180,12 @@ struct PaymentDetailPage {
           Column() {
             Text('费用明细')
               .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor('#666666')
-              .margin({ bottom: 16 });
+              .fontColor('#B0B0B0')
+              .margin({right:220})
+              .textAlign(TextAlign.Start);
+            Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 });
+
+
 
             // 动态循环药品列表
             ForEach(this.items, (item: PaymentItem) => {

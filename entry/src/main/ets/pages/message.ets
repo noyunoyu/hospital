@@ -1,5 +1,5 @@
 import router from '@ohos.router';
-import { HttpUtil, AppointmentListItem } from '../utils/HttpUtil2';
+import { HttpUtil, AppointmentListItem ,AppointmentListResponse } from '../utils/HttpUtil2';
 
 // 1. 定义就诊人数据接口
 interface PatientItem {
@@ -21,6 +21,13 @@ interface AppointmentItem {
   patient: string;
 }
 
+// 日期选择器类型
+interface DatePickerValue {
+  year?: number;
+  month?: number;
+  day?: number;
+}
+
 @Entry
 @Component
 struct AppointmentRecordPage {
@@ -28,11 +35,8 @@ struct AppointmentRecordPage {
   @State isShowDialog: boolean = false;
   @State selectedTimeRange: string = '1year';
   @State selectedTimeText: string = '选择时间';
-
-
   // 就诊人列表数据
   @State patients: PatientItem[] = [];
-
   // 当前选中的就诊人
   @State currentPatient: PatientItem = {
     id: 0,
@@ -42,9 +46,12 @@ struct AppointmentRecordPage {
     realId: '',
     relation: ''
   };
-
-
   @State appointments: AppointmentItem[] = [];
+  // 日期选择器
+  @State showDatePicker: boolean = false;
+  @State startDate: string = '2024-01-01';
+  @State endDate: string = '2024-01-01';
+  @State pickerMode: 'start' | 'end' = 'start';
 
   aboutToAppear() {
     this.loadPatients();
@@ -60,7 +67,7 @@ struct AppointmentRecordPage {
         displayId: HttpUtil.maskIdNumber(p.idNumber),
         realId: p.idNumber,
         relation: p.relation
-      }as PatientItem));
+      } as PatientItem));
       this.patients = patientList;
 
       // 设置默认就诊人（isDefault=1）
@@ -73,24 +80,62 @@ struct AppointmentRecordPage {
     }
   }
 
-
-
   async loadAppointments() {
-    let res = await HttpUtil.getAppointmentList(this.currentPatient.realId, this.selectedTimeRange);
+    if (!this.currentPatient.realId) {
+      return;
+    }
+
+    let res: AppointmentListResponse;
+
+    if (this.selectedTimeRange === 'custom') {
+      // 自定义日期
+      res = await HttpUtil.getAppointmentListByDate(
+        this.currentPatient.realId,
+        this.startDate,
+        this.endDate
+      );
+    } else {
+      // 近一年
+      res = await HttpUtil.getAppointmentList(
+        this.currentPatient.realId,
+        this.selectedTimeRange
+      );
+    }
+
     if (res.code === 200) {
-      this.appointments = res.data.map((item: AppointmentListItem) => {
-        return {
-          id: item.id,
-          title: item.title,
-          status: item.status,
-          department: item.department,
-          time: item.time,
-          patient: item.patient
-        }as AppointmentItem;
-      });
+      this.appointments = res.data.map((item: AppointmentListItem) => ({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        department: item.department,
+        time: item.time,
+        patient: item.patient
+      } as AppointmentItem));
     } else {
       this.appointments = [];
-      console.error('加载预约记录失败：' + res.msg);
+    }
+  }
+
+  // 格式化日期：2024-01-01 → 2024年01月01日
+  formatToChineseDate(dateStr: string): string {
+    const GeneratedDestructArray_1 = dateStr.split('-');
+    const year = GeneratedDestructArray_1[0];
+    const month = GeneratedDestructArray_1[1];
+    const day = GeneratedDestructArray_1[2];
+    return `${year}年${month}月${day}日`;
+  }
+
+  // 日期选择回调
+  onDateChange(value: DatePickerValue) {
+    const year = value.year ?? 2024;
+    const month = value.month ?? 0;
+    const day = value.day ?? 1;
+    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+    if (this.pickerMode === 'start') {
+      this.startDate = dateStr;
+    } else {
+      this.endDate = dateStr;
     }
   }
 
@@ -142,7 +187,12 @@ struct AppointmentRecordPage {
                   .fontSize(12)
                   .fontColor('#007DFF')
                   .backgroundColor('#E6F7FF')
-                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                  .padding({
+                    left: 6,
+                    right: 6,
+                    top: 2,
+                    bottom: 2
+                  })
                   .borderRadius(4)
                   .margin({ left: 8 })
               }
@@ -183,7 +233,12 @@ struct AppointmentRecordPage {
             .backgroundColor(this.selectedTimeRange === '1year' ? '#007DFF' : '#E6F7FF')
             .fontColor(this.selectedTimeRange === '1year' ? '#FFFFFF' : '#007DFF')
             .fontSize(14)
-            .padding({ left: 20, right: 20, top: 4, bottom: 8 })
+            .padding({
+              left: 20,
+              right: 20,
+              top: 4,
+              bottom: 8
+            })
             .borderRadius(13)
             .margin({ right: 12 })
             .height(26)
@@ -193,34 +248,19 @@ struct AppointmentRecordPage {
               this.loadAppointments();
             })
 
-          // === 修改点：兼容旧版 Select 写法 ===
-          // 旧版 Select 直接传字符串数组，不支持 label 属性
-          Select([
-            { value: "近三个月" },
-            { value: "近六个月" },
-            { value: "全部时间" }
-          ])
-            .value(this.selectedTimeText)
+          Button(this.selectedTimeText)
             .backgroundColor('#E6F7FF')
             .fontColor('#007DFF')
-            .padding({ left: 20, right: 20, top: 8, bottom: 8 })
-            .borderRadius(16)
-            .controlSize(ControlSize.SMALL)
-            .onSelect((index: number) => {
-              if (index === 0) {
-                this.selectedTimeRange = '3months';
-                this.selectedTimeText = '近三个月';
-              } else if (index === 1) {
-                this.selectedTimeRange = '6months';
-                this.selectedTimeText = '近六个月';
-              } else if (index === 2) {
-                this.selectedTimeRange = 'all';
-                this.selectedTimeText = '全部时间';
-              }
-              this.loadAppointments();
+            .fontSize(14)
+            .padding({
+              left: 20,
+              right: 20,
             })
-
-
+            .borderRadius(16)
+            .height(26)
+            .onClick(() => {
+              this.showDatePicker = true;
+            })
         }
         .width('94%')
         .padding({ left: 16, top: 0, bottom: 16 })
@@ -290,7 +330,12 @@ struct AppointmentRecordPage {
 
                         Text(patient.tag)
                           .fontSize(12)
-                          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                          .padding({
+                            left: 6,
+                            right: 6,
+                            top: 2,
+                            bottom: 2
+                          })
                           .backgroundColor('#E6F7FF')
                           .borderRadius(4)
                           .fontColor('#007DFF')
@@ -340,6 +385,63 @@ struct AppointmentRecordPage {
           this.isShowDialog = false;
         })
       }
+
+      // ====================== 日期选择弹窗 ======================
+      if (this.showDatePicker) {
+        // 遮罩
+        Column() { Blank() }
+        .width('100%').height('100%').backgroundColor('#000').opacity(0.4)
+        .position({ top: 0 })
+
+        // 弹窗主体
+        Column() {
+          // 取消 / 确定
+          Row() {
+            Text('取消').fontSize(16).fontColor('#666').margin({left:16})
+              .onClick(() => this.showDatePicker = false);
+            Blank();
+            Text('确定').fontSize(16).fontColor('#007DFF').margin({right:16})
+              .onClick(() => {
+                this.selectedTimeText = `${this.formatToChineseDate(this.startDate)} 至 ${this.formatToChineseDate(this.endDate)}`;
+                this.selectedTimeRange = 'custom';
+                this.showDatePicker = false;
+                this.loadAppointments();
+              });
+          }.width('100%').height(44)
+
+          // 日期显示
+          Row() {
+            Text(this.formatToChineseDate(this.startDate))
+              .width(135).height(35).borderWidth(1).borderColor('#FFFFFF').borderRadius(6)
+              .backgroundColor(this.pickerMode === 'start' ? '#006EFF' : '#E6F1FF')
+              .fontColor(this.pickerMode === 'start' ? '#F2F2F2' : '#62A6FF')
+              .fontSize(12)
+              .textAlign(TextAlign.Center)
+              .onClick(() => this.pickerMode = 'start');
+
+            Text('至').fontSize(16).margin({ left: 12, right: 12 });
+
+            Text(this.formatToChineseDate(this.endDate))
+              .width(135).height(35).borderWidth(1).borderColor('#FFFFFF').borderRadius(6)
+              .backgroundColor(this.pickerMode === 'end' ? '#006EFF' : '#E6F1FF')
+              .fontColor(this.pickerMode === 'end' ? '#F2F2F2' : '#62A6FF')
+              .fontSize(12)
+              .textAlign(TextAlign.Center)
+              .onClick(() => this.pickerMode = 'end');
+          }.margin({ top: 12, bottom: 12 })
+
+          // 日期滚轮（无中文）
+          DatePicker({
+            start: new Date('2020-01-01'),
+            end: new Date('2030-12-31'),
+            selected: this.pickerMode === 'start' ? new Date(this.startDate) : new Date(this.endDate)
+          })
+            .onChange((value: DatePickerValue) => this.onDateChange(value))
+            .width('100%').height(200).backgroundColor('#fff')
+        }
+        .width('100%').backgroundColor('#fff').borderRadius({ topLeft: 16, topRight: 16 })
+        .position({ bottom: 0 })
+      }
     }
   }
 
@@ -388,10 +490,20 @@ struct AppointmentRecordPage {
         .width('100%')
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 0, bottom: 16 })
+    .padding({
+      left: 16,
+      right: 16,
+      top: 0,
+      bottom: 16
+    })
     .backgroundColor('#FFFFFF')
     .borderRadius(12)
-    .shadow({ radius: 8, color: '#10000000', offsetX: 0, offsetY: 2 })
+    .shadow({
+      radius: 8,
+      color: '#10000000',
+      offsetX: 0,
+      offsetY: 2
+    })
   }
 
   getStatusColor(status: string): string {
@@ -432,8 +544,8 @@ struct AppointmentRecordPage {
       }
     });
   }
-
 }
+
 
 function getDepartmentName(fullName: undefined, string: undefined) {
   throw new Error('Function not implemented.');

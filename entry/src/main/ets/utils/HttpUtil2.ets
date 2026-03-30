@@ -258,6 +258,57 @@ export class HttpUtil {
     const end = idNumber.substring(idNumber.length - 4);
     return `${start}********${end}`;
   }
+  // 根据 开始日期 + 结束日期 获取缴费记录
+  static async getPaymentListByDate(medicalCardNo: string, startTime: string, endTime: string): Promise<PaymentListResponse> {
+    let httpRequest = http.createHttp();
+    try {
+      let url = `${BASE_URL}/api/payments/custom?medical_card_no=${encodeURIComponent(medicalCardNo)}&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(endTime)}`;
+
+      let result = await httpRequest.request(url, {
+        method: http.RequestMethod.GET,
+        connectTimeout: 10000
+      });
+
+      if (result.responseCode === 200 && result.result) {
+        return JSON.parse(result.result.toString()) as PaymentListResponse;
+      } else {
+        return { code: 500, msg: '获取失败', data: [] };
+      }
+    } catch (err) {
+      console.error("err", err);
+      return { code: 500, msg: '异常', data: [] };
+    } finally {
+      httpRequest.destroy();
+    }
+  }
+
+  // 根据 开始日期 + 结束日期 获取【预约记录】
+  static async getAppointmentListByDate(
+    patientIdCard: string,
+    startTime: string,
+    endTime: string
+  ): Promise<AppointmentListResponse> {
+    let httpRequest = http.createHttp();
+    try {
+      let url = `${BASE_URL}/api/appointments/custom?patient_id_card=${encodeURIComponent(patientIdCard)}&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(endTime)}`;
+
+      let result = await httpRequest.request(url, {
+        method: http.RequestMethod.GET,
+        connectTimeout: 10000
+      });
+
+      if (result.responseCode === 200 && result.result) {
+        return JSON.parse(result.result.toString()) as AppointmentListResponse;
+      } else {
+        return { code: 500, msg: '获取失败', data: [] };
+      }
+    } catch (err) {
+      console.error("err", err);
+      return { code: 500, msg: '异常', data: [] };
+    } finally {
+      httpRequest.destroy();
+    }
+  }
 
 
 }
