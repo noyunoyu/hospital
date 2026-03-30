@@ -24,6 +24,7 @@ interface PatientItem {
   medicalCardNo: string;  // 就诊卡号
 }
 
+
 @Entry
 @Component
 struct Pay {

@@ -1,6 +1,6 @@
 import http from '@ohos.net.http';
 
-const BASE_URL = "http://192.168.0.7:5000";
+const BASE_URL = "http://222.24.75.252:5000";
 
 // 定义就诊人数据结构
 export interface PatientData {
