@@ -95,20 +95,19 @@ struct AppointmentDetailPage {
               .borderRadius(8)
               .backgroundColor('#E6F7FF')
               .margin({ right:12 })
-            Column() {
+            Row() {
               Text(this.appointment.doctorName)
-                .fontSize(16)
+                .fontSize(17)
                 .fontWeight(FontWeight.Medium)
                 .fontColor('#333333')
               Text(this.appointment.doctorTitle)
-                .fontSize(12)
+                .fontSize(13)
                 .fontColor('#999999')
-                .margin({ top:2 })
+                .margin({ top:2 ,left:5})
             }
-            .alignItems(HorizontalAlign.Start)
           }
           .width('100%')
-          .padding({ bottom:16 })
+          .padding({ bottom:10,top:10 })
           Divider().strokeWidth(1).color('#EEEEEE').margin({ top:12, bottom:12 })
         Row(){
           Text('就诊医院')
@@ -117,7 +116,7 @@ struct AppointmentDetailPage {
             .width(80)
           Text(this.appointment.hospital)
             .fontSize(14)
-            .fontColor('#333333')
+            .fontColor('#999999')
             .layoutWeight(1)
 
         }.width('100%')
@@ -131,7 +130,7 @@ struct AppointmentDetailPage {
               .width(80)
             Text(this.appointment.address)
               .fontSize(14)
-              .fontColor('#333333')
+              .fontColor('#999999')
               .layoutWeight(1)
             Image($r('app.media.address'))
               .width(16)
@@ -150,7 +149,7 @@ struct AppointmentDetailPage {
               .width(80)
             Text(this.appointment.department)
               .fontSize(14)
-              .fontColor('#333333')
+              .fontColor('#999999')
               .layoutWeight(1)
           }
           .width('100%')
@@ -164,7 +163,7 @@ struct AppointmentDetailPage {
               .width(80)
             Text(this.appointment.clinicTime)
               .fontSize(14)
-              .fontColor('#333333')
+              .fontColor('#999999')
               .layoutWeight(1)
           }.width('100%')
           .padding({ top:12, bottom:12 })
@@ -177,7 +176,7 @@ struct AppointmentDetailPage {
               .width(80)
             Text(this.appointment.waitTime)
               .fontSize(14)
-              .fontColor('#333333')
+              .fontColor('#999999')
               .layoutWeight(1)
           }.width('100%')
           .padding({ top:12, bottom:12 })
@@ -195,6 +194,7 @@ struct AppointmentDetailPage {
             Text('(就诊时支付)')
               .fontSize(12)
               .fontColor('#999999')
+              .margin({right:110})
           }
           .width('100%')
           .padding({ top:12, bottom:12 })
@@ -208,7 +208,7 @@ struct AppointmentDetailPage {
               .width(80)
             Text(this.appointment.appointmentTime)
               .fontSize(14)
-              .fontColor('#333333')
+              .fontColor('#999999')
               .layoutWeight(1)
           }.width('100%')
           .padding({ top:12, bottom:12 })
@@ -229,7 +229,7 @@ struct AppointmentDetailPage {
               .width(80)
             Text(this.appointment.patientName)
               .fontSize(14)
-              .fontColor('#333333')
+              .fontColor('#999999')
               .layoutWeight(1)
           }.width('100%')
           .padding({ top:12, bottom:12 })
@@ -241,7 +241,7 @@ struct AppointmentDetailPage {
               .width(80)
             Text(this.appointment.idCard)
               .fontSize(14)
-              .fontColor('#333333')
+              .fontColor('#999999')
               .layoutWeight(1)
           }.width('100%')
           .padding({ top:12, bottom:12 })
@@ -262,14 +262,26 @@ struct AppointmentDetailPage {
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
           .borderRadius(8)
-          .onClick(() => {
-            router.pushUrl({
-              url:"pages/appointment03",
-              params: {
-                appointmentId: this.currentId  // 需要从 state 中获取当前预约 ID
-              }
-            })
+          .onClick(async () => {
+            try {
+              // 1. 调用取消预约接口
+              let res = await HttpUtil.cancelAppointment(this.currentId);
 
+              if (res.code === 200) {
+                console.log("取消预约成功");
+                // 2. 跳转到已取消页面
+                router.pushUrl({
+                  url: "pages/appointment03",
+                  params: {
+                    appointmentId: this.currentId
+                  }
+                });
+              } else {
+                console.error("取消预约失败：", res.msg);
+              }
+            } catch (e) {
+              console.error("取消预约异常：", e);
+            }
           })
           .margin({ bottom:32 })
       }

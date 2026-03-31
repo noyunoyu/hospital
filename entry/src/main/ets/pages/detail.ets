@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import { HttpUtil, PaymentItem, PaymentDetail } from '../utils/HttpUtil2';
 import { EditableLeftIconType } from '@kit.ArkUI';
+import { StartOptions } from '@kit.AbilityKit';
 
 // 定义路由参数类型（解决ArkTS类型报错）
 interface RouterParams {
@@ -104,7 +105,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.feeType)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -118,7 +119,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.department)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -133,7 +134,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.doctorName)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -148,7 +149,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.patientName)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -163,7 +164,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.medicalCardNo)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -183,12 +184,12 @@ struct PaymentDetailPage {
               .fontColor('#B0B0B0')
               .margin({right:220})
               .textAlign(TextAlign.Start);
-            Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 });
 
 
 
             // 动态循环药品列表
             ForEach(this.items, (item: PaymentItem) => {
+              Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 });
               Column() {
                 this.buildMedicineItem(
                   item.drugName,
@@ -196,7 +197,7 @@ struct PaymentDetailPage {
                   item.quantity,
                   parseFloat(item.drugTotal)
                 );
-                Divider().strokeWidth(1).color('#EEEEEE').margin({ top: 12, bottom: 12 });
+
               }
             });
           }
@@ -216,7 +217,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.paymentMethod)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -229,7 +230,7 @@ struct PaymentDetailPage {
                   .width(80)
                 Text(this.cardBalance)
                   .fontSize(14)
-                  .fontColor('#333333')
+                  .fontColor('#999999')
                   .layoutWeight(1)
               }
               .width('100%')
@@ -242,7 +243,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.orderTotal)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#F56F6F')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -255,7 +256,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.orderNumber)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -268,7 +269,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text(this.orderTime)
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -281,7 +282,7 @@ struct PaymentDetailPage {
                 .width(80)
               Text('已支付')
                 .fontSize(14)
-                .fontColor('#333333')
+                .fontColor('#999999')
                 .layoutWeight(1)
             }
             .width('100%')
@@ -307,26 +308,6 @@ struct PaymentDetailPage {
     .backgroundColor('#FDFEFF');
   }
 
-  // 辅助函数 —— 完全不变
-  @Builder
-  buildInfoRow(label: string, value: string, isHighlight: boolean = false) {
-    Row() {
-      Text(label)
-        .fontSize(14)
-        .fontColor('#999999')
-        .width(100);
-
-      Text(value)
-        .fontSize(14)
-        .fontColor(isHighlight ? '#FF4D4F' : '#333333')
-        .fontWeight(isHighlight ? FontWeight.Medium : FontWeight.Normal)
-        .layoutWeight(1)
-        .textAlign(TextAlign.End);
-    }
-    .width('100%')
-    .padding({ top: 12, bottom: 12 })
-    .justifyContent(FlexAlign.SpaceBetween);
-  }
 
   // 辅助函数 —— 完全不变
   @Builder
@@ -334,9 +315,10 @@ struct PaymentDetailPage {
     Column() {
       Row() {
         Text(name)
-          .fontSize(16)
+          .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .fontColor('#333333');
+
 
         Text(`¥${total.toFixed(2)}`)
           .fontSize(16)
@@ -347,6 +329,8 @@ struct PaymentDetailPage {
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween);
+
+      Blank(8)
 
       Row() {
         Text(`单价：¥${unitPrice.toFixed(2)}  数量：${quantity}`)

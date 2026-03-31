@@ -1,6 +1,6 @@
 import http from '@ohos.net.http';
 
-const BASE_URL = "http://222.24.75.252:5000";
+const BASE_URL = "http://222.24.72.8:5000";
 
 // 定义就诊人数据结构
 export interface PatientData {
@@ -160,6 +160,29 @@ export class HttpUtil {
     }
   }
 
+  // 取消预约接口
+  static async cancelAppointment(appointmentId: number): Promise<HttpResponseData> {
+    let httpRequest = http.createHttp();
+    try {
+      let url = `${BASE_URL}/api/appointment/cancel/${appointmentId}`;
+      let result = await httpRequest.request(url, {
+        method: http.RequestMethod.PUT,  // 使用PUT修改状态
+        connectTimeout: 10000
+      });
+
+      if (result.responseCode === 200 && result.result) {
+        return JSON.parse(result.result.toString()) as HttpResponseData;
+      } else {
+        return getEmptyResponse();
+      }
+    } catch (err) {
+      console.error("取消预约失败", JSON.stringify(err));
+      return getEmptyResponse();
+    } finally {
+      httpRequest.destroy();
+    }
+  }
+
   // 获取就诊人列表
   static async getPatients(): Promise<PatientListResponse> {
     let httpRequest = http.createHttp();
@@ -258,6 +281,7 @@ export class HttpUtil {
     const end = idNumber.substring(idNumber.length - 4);
     return `${start}********${end}`;
   }
+
   // 根据 开始日期 + 结束日期 获取缴费记录
   static async getPaymentListByDate(medicalCardNo: string, startTime: string, endTime: string): Promise<PaymentListResponse> {
     let httpRequest = http.createHttp();

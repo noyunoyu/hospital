@@ -178,11 +178,11 @@ struct Pay {
         Column() {
           Row() {
             Text(this.currentPatient.name)
-              .margin({ top: 30 });
+              .margin({ top: 30 ,right:10 });
 
             Text(this.currentPatient.tag)
               .fontSize(12)
-              .margin({ top: 28, left: 10, right: 120 })
+              .margin({ top: 28, right: 165 })
               .backgroundColor('#E2EDFE')
               .fontColor('#4C98FF')
               .borderWidth(4)
@@ -190,9 +190,9 @@ struct Pay {
               .borderRadius(8);
 
             Image($r('app.media.qiehuan'))
-              .width(25)
-              .height(25)
-              .margin({ top: 30, left: 25 })
+              .width(22)
+              .height(22)
+              .margin({ top: 30, right:22 })
               .onClick(() => {
                 this.isShowDialog = true;
               });
@@ -207,7 +207,8 @@ struct Pay {
 
             Text("切换就诊人")
               .fontColor("#D3D7DC")
-              .position({ x: 230, y: 65 })
+              .fontSize(12)
+              .position({ x: 243, y: 63 })
               .onClick(() => {
                 this.isShowDialog = true;
               });
@@ -245,8 +246,8 @@ struct Pay {
 
 
           Button(this.selectedTimeText)
-            .backgroundColor('#E6F7FF')
-            .fontColor('#007DFF')
+            .backgroundColor('#E4F0FF')
+            .fontColor('#79B3FF')
             .fontSize(14)
             .padding({ left: 20, right: 20 })
             .borderRadius(16)
@@ -474,15 +475,14 @@ struct Pay {
     Row() {
       Column() {
         Text(item.title)
-          .fontSize(18)
+          .fontSize(16)
           .fontColor("#838383")
           .fontWeight(500)
-          .margin({ right: 20, bottom: 10 });
+          .margin({ right: 24, bottom: 10 });
 
         Text(item.department + ' ' + item.name)
           .fontColor("#D3D3D3")
           .fontSize(12)
-          .margin({ right: 15 })
 
 
         Text(item.time)
@@ -495,10 +495,10 @@ struct Pay {
       Column() {
         Text("￥" + item.money)
           .fontColor("#F57979")
-          .fontSize(20)
+          .fontSize(18)
           .fontWeight(600);
       }
-      .margin({ left: 70 });
+      .margin({ left: 120 });
     }
     .borderWidth(2)
     .height(110)

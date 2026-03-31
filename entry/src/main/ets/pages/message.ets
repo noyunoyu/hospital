@@ -183,45 +183,48 @@ struct AppointmentRecordPage {
                   .fontWeight(FontWeight.Medium)
                   .fontColor('#333333')
 
-                Text(this.currentPatient.tag)
+                Text(' '+this.currentPatient.tag)
                   .fontSize(12)
                   .fontColor('#007DFF')
-                  .backgroundColor('#E6F7FF')
+                  .backgroundColor('#E2EDFE')
                   .padding({
                     left: 6,
                     right: 6,
                     top: 2,
                     bottom: 2
                   })
-                  .borderRadius(4)
+                  .borderRadius(6)
                   .margin({ left: 8 })
+                  .width(42)
               }
 
               Text(this.currentPatient.displayId)
                 .fontSize(12)
                 .fontColor('#999999')
-                .margin({ top: 8 })
+                .margin({ top: 12 })
             }
             .alignItems(HorizontalAlign.Start)
             .layoutWeight(1)
 
             Column() {
               Image($r('app.media.qiehuan'))
-                .width(30)
-                .height(30)
+                .width(22)
+                .height(22)
+                .margin({top:13})
                 .onClick(() => {
                   this.isShowDialog = true;
                 })
               Text('切换就诊人')
                 .fontSize(12)
                 .fontColor('#999999')
-                .margin({ top: 6 })
+                .margin({ top: 12 })
             }
             .alignItems(HorizontalAlign.Center)
           }
           .width('100%')
         }
         .width('94%')
+        .height(100)
         .padding(16)
         .backgroundColor('#F5F8FF')
         .borderRadius(12)
@@ -249,8 +252,8 @@ struct AppointmentRecordPage {
             })
 
           Button(this.selectedTimeText)
-            .backgroundColor('#E6F7FF')
-            .fontColor('#007DFF')
+            .backgroundColor('#E4F0FF')
+            .fontColor('#79B3FF')
             .fontSize(14)
             .padding({
               left: 20,
